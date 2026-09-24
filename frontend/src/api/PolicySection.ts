@@ -1,21 +1,20 @@
 import { mockData } from "../mocks/seedData";
+import { readCollection, writeCollection } from "./localStore";
+import { LOG_TEMPLATES } from "../constants/logTemplates";
 import type { PolicySection } from "../types/PolicySection";
 
-const endpoint = "/api/policy-section";
+const COLLECTION = "policySection";
 
 export async function listPolicySection(): Promise<PolicySection[]> {
-  if (typeof fetch !== "undefined" && endpoint.startsWith("/api") && false) {
-    try {
-      const res = await fetch(endpoint);
-      if (res.ok) return await res.json();
-    } catch {
-      // Local mock fallback keeps the UI available during offline review.
-    }
-  }
-  return [...(mockData.policySection as unknown as PolicySection[])];
+  return readCollection<PolicySection>(COLLECTION, mockData.policySection as unknown as PolicySection[]);
 }
 
-export async function savePolicySection(payload: PolicySection) {
-  console.info("save PolicySection", payload);
+export async function savePolicySection(payload: PolicySection): Promise<PolicySection> {
+  const rows = await listPolicySection();
+  const index = rows.findIndex((row) => row.id === payload.id);
+  if (index >= 0) rows[index] = payload;
+  else rows.push(payload);
+  writeCollection(COLLECTION, rows);
+  console.info(LOG_TEMPLATES.PolicySection.update, payload);
   return payload;
 }
