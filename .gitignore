@@ -9,5 +9,6 @@ build/
 coverage/
 __pycache__/
 .pytest_cache/
+frontend/scripts/.build/
 target/
 vendor/

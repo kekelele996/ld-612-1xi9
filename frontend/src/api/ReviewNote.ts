@@ -1,21 +1,28 @@
-import { mockData } from "../mocks/seedData";
+import { seedData } from "../mocks/seedData";
 import type { ReviewNote } from "../types/ReviewNote";
+import { nextLocalId, readLocalRows, writeLocalRows } from "../utils/localStorage";
 
-const endpoint = "/api/review-note";
+const STORAGE_KEY = "reviewNote";
 
+/** 读取本机保存的审阅备注；首次访问用种子数据初始化 */
 export async function listReviewNote(): Promise<ReviewNote[]> {
-  if (typeof fetch !== "undefined" && endpoint.startsWith("/api") && false) {
-    try {
-      const res = await fetch(endpoint);
-      if (res.ok) return await res.json();
-    } catch {
-      // Local mock fallback keeps the UI available during offline review.
-    }
-  }
-  return [...(mockData.reviewNote as unknown as ReviewNote[])];
+  return readLocalRows<ReviewNote>(STORAGE_KEY, seedData.reviewNote);
 }
 
-export async function saveReviewNote(payload: ReviewNote) {
-  console.info("save ReviewNote", payload);
-  return payload;
+/** 新建或更新处理意见并保存到本机，返回保存后的副本 */
+export async function saveReviewNote(payload: ReviewNote): Promise<ReviewNote> {
+  const rows = readLocalRows<ReviewNote>(STORAGE_KEY, seedData.reviewNote);
+  const now = new Date().toISOString();
+  const index = rows.findIndex((row) => row.id === payload.id);
+  if (index >= 0) {
+    rows[index] = { ...payload, updated_at: now };
+  } else {
+    const id = nextLocalId(rows);
+    const created: ReviewNote = { ...payload, id, created_at: now, updated_at: now };
+    rows.push(created);
+    writeLocalRows(STORAGE_KEY, rows);
+    return { ...created };
+  }
+  writeLocalRows(STORAGE_KEY, rows);
+  return { ...rows[index] };
 }
